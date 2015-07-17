@@ -290,6 +290,12 @@ var oldCancelAnimationFrame = null;
 });
 
 waitAsync.fastTimeouts = false;
+waitAsync.setTimeout = oldSetTimeout;
+waitAsync.setInterval = oldSetInterval;
+waitAsync.clearTimeout = oldClearTimeout;
+waitAsync.clearInterval = oldClearInterval;
+waitAsync.XMLHttpRequest = oldXhr;
+waitAsync.Date = oldDate;
 return waitAsync;
 
 })(this);
