@@ -1,6 +1,6 @@
 {
   "name": "async-wait",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Detect and wait for asyncronous behaviour in code you don't control",
   "main": "waitAsync.js",
   "scripts": {
