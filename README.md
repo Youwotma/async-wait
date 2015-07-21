@@ -1,5 +1,7 @@
 Detect asynchronous behaviour that was started and wait for it to finish. Optionally, speed up setTimeout when possible.
 
+WaitAsync(fn, [config, ] callback);
+
 It takes two functions, the first function is executed immediately and the second is executed as soon as all the asynchronous behaviour that was started in the first function finishes.
 
 ```
@@ -29,6 +31,11 @@ Options
 
 waitAsync.fastTimeouts (default: false): if set to true, and there is no pending XMLHttpRequest setTimeout/setInterval will be run as soon as possible, while still being run in the correct order. This allows skipping over animations and other unnecessary delays.
     timeouts are run back at normal speeds when there are Ajax calls working so that the execution order can be preserved.
+
+config.maxXhr (default: unlimited): Maximum number of XMLHttpRequests allowed to run in the lifetime of the context (after it will silently do nothing)
+config.maxTimeouts (default: unlimited): Maximum number of timoeuts allowed to run in the lifetime of the context (after it will silently do nothing)
+
+If both maxXhr and maxTimeouts are set to a finite number, callback is guaranteed to be called.
 
 Uses
 ====

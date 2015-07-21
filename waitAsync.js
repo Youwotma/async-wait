@@ -104,6 +104,10 @@ var timeoutsByTid = {};
 var lastTid = 1;
 
 function insertTimeout(fn, timeout, repeat){
+    if(currentContext.timeoutCredits <= 0) {
+        return;
+    }
+    currentContext.timeoutCredits--;
     var tid = ++lastTid;
     timeout = Math.max(+timeout, 0);
     if(currentContext) {
@@ -134,7 +138,8 @@ function setInterval(fn, timeout){
 
 function clearTimeout(tid) {
     var timeoutObj = timeoutsByTid[tid];
-    if(timeoutObj){
+    if(timeoutObj) {
+        timeoutObj.context.timeoutCredits++;
         clearTimeoutObj(timeoutObj, true);
     }
 }
@@ -165,7 +170,8 @@ function runTimeouts() {
     while(timeouts.length && FakeDate.now() >= timeouts[0].time) {
         var timeoutObj = timeouts.shift();
         // Run the timeout
-        if(timeoutObj.repeat && !timeoutObj.cleared) {
+        if(timeoutObj.repeat && !timeoutObj.cleared && timeoutObj.context.timeoutCredits > 0) {
+            timeoutObj.context.timeoutCredits--;
             timeoutObj.time = FakeDate.now() + timeoutObj.timeout;
             timeouts.splice(locationOf(timeoutObj, timeouts, compareTimeouts) + 1, 0, timeoutObj);
         } else {
@@ -201,6 +207,8 @@ function waitAsync(fn, config, callback) {
         config = {};
     }
     var ctx = {
+        xhrCredits: typeof config.maxXhr === 'number' ? config.maxXhr : Number.MAX_VALUE,
+        timeoutCredits: typeof config.maxTimeouts === 'number' ? config.maxTimeouts : Number.MAX_VALUE,
         config: config,
         timeouts: 0,
         xhrs: 0,
@@ -220,8 +228,13 @@ function Xhr(){
     var oldSend = patch(xhr, 'send', function(){
         context = currentContext || context;
         if(context) {
+            console.log('xhr credits:', context.xhrCredits);
+            if(context.xhrCredits <= 0) {
+                return;
+            }
+            context.xhrCredits--;
             context.xhrs++;
-            xhrs--;
+            xhrs++;
         }
         return oldSend.apply(this, arguments);
     });

@@ -17,6 +17,10 @@ function assert(x, s){
     }
 }
 
+function fail(msg) {
+    throw new Error(msg || 'fail()');
+}
+
 describe('ensureRange', function() {
     it('works', function(){
         ensureRange([], 0);
@@ -243,7 +247,7 @@ describe('waitAsync ' + (enableFastTimeouts ? 'with' : 'without') + ' fastTimeou
 
     function ajax(url) {
         var xhr = new XMLHttpRequest();
-        xhr.open('GET', url || '/', true);
+        xhr.open('GET', url || '/?' + new Date(), true);
         return xhr;
     }
 
@@ -260,6 +264,8 @@ describe('waitAsync ' + (enableFastTimeouts ? 'with' : 'without') + ' fastTimeou
                 }, 100);
             };
             xhr.send();
+        }, {
+            maxXhr: 1
         }, function(){
             assert(changes, 'Ready state changed');
             assert(timeout, 'Waited for timeout');
@@ -297,7 +303,7 @@ describe('waitAsync ' + (enableFastTimeouts ? 'with' : 'without') + ' fastTimeou
             }, 700);
 
             var xhr = ajax();
-            xhr.onreadystatechange = function(){
+            xhr.onload = function(){
                 var xhr = ajax();
                 xhr.onload = function(){
                     clearTimeout(tid);
@@ -328,7 +334,7 @@ describe('waitAsync ' + (enableFastTimeouts ? 'with' : 'without') + ' fastTimeou
         });
     });
 
-    it('ajax error', function(done){
+    xit('ajax error', function(done){
         var ok = false;
 
         waitAsync(function(){
@@ -341,6 +347,72 @@ describe('waitAsync ' + (enableFastTimeouts ? 'with' : 'without') + ' fastTimeou
             xhr.send();
         }, function(){
             assert(ok, 'Completed');
+            done();
+        });
+    });
+
+    it('maxTimeouts', function(done){
+        var range = [];
+        waitAsync(function(){
+            range.push(1);
+            setTimeout(function(){ range.push(2); }, 100);
+            setTimeout(function(){ range.push(3); }, 200);
+            setTimeout(function(){ range.push(4); }, 300);
+            setTimeout(function(){ fail(); }, 400); // Won't be ran
+        }, {
+            maxTimeouts: 3
+        }, function(){
+            ensureRange(range, 4);
+            done();
+        });
+    });
+
+    it('maxTimeouts nested', function(done){
+        var range = [];
+        waitAsync(function(){
+            range.push(1);
+
+            setTimeout(function(){
+                range.push(2);
+                setTimeout(function(){ // Won't be ran
+                    range.push(3);
+                    setTimeout(function(){ // Won't be ran
+                        fail();
+                    }, 150);
+                }, 50);
+            }, 100);
+        }, {
+            maxTimeouts: 2
+        }, function(){
+            ensureRange(range, 3);
+            done();
+        });
+    });
+
+    it('maxXhr works', function(done){
+        waitAsync(function(){
+            var xhr = ajax();
+            xhr.onload = function(){
+                fail();
+            };
+            xhr.send();
+        }, {
+            maxXhr: 0
+        }, function(){
+            done();
+        });
+    });
+
+    it('maxTimeouts with setInterval', function(done){
+        var range = [], i=0;
+        waitAsync(function(){
+            setInterval(function(){
+                range.push(++i);
+            }, enableFastTimeouts ? 100000 : 30);
+        }, {
+            maxTimeouts: 5
+        }, function(){
+            ensureRange(range, 5);
             done();
         });
     });
